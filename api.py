@@ -112,9 +112,9 @@ def generate(
 if __name__ == "__main__":
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
-    def signal_handler(sig, frame):
+    def _signal_handler(sig, frame):
         executor.shutdown(wait=True)
         sys.exit(0)
 
-    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
     uvicorn.run(app, host="0.0.0.0", port=8686)
