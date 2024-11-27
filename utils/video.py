@@ -19,7 +19,11 @@ def add_subtitle(video: str, subtitle: str, output: str) -> str:
     subprocess.call(["ffmpeg", "-y", "-i", video, "-vf", f"subtitles={subtitle}", "-c:v", "copy", "-c:a", "copy", output], cwd=os.path.dirname(output))
     return output
 
-def concat_videos(video_files: List[str], output: str) -> None:
+def add_cover(video: str, image: str, output: str) -> str:
+    subprocess.call(["ffmpeg", "-y", "-i", video, "-i", image, "-map", "1", "-map", "0", "-c", "copy", "-disposition:0", "attached_pic", output], cwd=os.path.dirname(output))
+    return output
+
+def concat_all(video_files: List[str], output: str) -> None:
     file_list = f"{os.path.dirname(output)}/file_list.txt"
     with open(file_list, "a+") as f:
         for video in video_files:

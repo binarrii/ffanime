@@ -1,4 +1,6 @@
+import math
 import os
+import shutil
 import signal
 import sys
 import uuid
@@ -7,10 +9,10 @@ import uvicorn
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 from fastapi import FastAPI
-from utils import audio
+from utils import audio, video
 from utils.storage import read_and_write
-from utils.video import concat_videos, concat_with_transition, from_image, add_audio, add_subtitle
 
+_OUTPUT_DIR = "/data/ffanime_output"
 
 executor = ThreadPoolExecutor(max_workers=os.cpu_count() - 1)
 
@@ -24,6 +26,7 @@ def generate(
     background_sound: Optional[str] = None,
     opening: Optional[str] = None,
     ending: Optional[str] = None,
+    cover: Optional[str] = None,
 ):
     """
     Generate a video from images, with optional audio, subtitles, background sound, opening, and ending.
@@ -66,41 +69,52 @@ def generate(
 
     if audios:
         durations = list(executor.map(audio.get_duration, audios))
-        durations = [duration + 1 for duration in durations]
+        durations = [math.ceil(duration) for duration in durations]
     else:
         durations = [5] * len(images)
 
-    videos = list(executor.map(from_image, images, durations))
+    videos = list(executor.map(video.from_image, images, durations))
     if audios:
-        videos = list(executor.map(add_audio, videos, audios, [f"{work_dir}/output_{os.path.basename(v)}" for v in videos]))
+        videos = list(executor.map(video.add_audio, videos, audios, [f"{work_dir}/output_{os.path.basename(v)}" for v in videos]))
     if subtitles:
-        videos = list(executor.map(add_subtitle, videos, subtitles, [f"{work_dir}/output_sub_{os.path.basename(v)}" for v in videos]))
+        videos = list(executor.map(video.add_subtitle, videos, subtitles, [f"{work_dir}/output_sub_{os.path.basename(v)}" for v in videos]))
     
     output_video = f"{work_dir}/final_output.mp4"
-    concat_videos(videos, output_video)
+    video.concat_all(videos, output_video)
 
     if background_sound:
         temp_output = f"{work_dir}/temp_output_with_audio.mp4"
-        add_audio(output_video, background_sound, temp_output)
+        video.add_audio(output_video, background_sound, temp_output)
         os.rename(temp_output, output_video)
 
     if opening:
         temp_output = f"{work_dir}/temp_output_with_opening.mp4"
-        concat_with_transition(opening, output_video, temp_output)
+        video.concat_with_transition(opening, output_video, temp_output)
         os.rename(temp_output, output_video)
 
     if ending:
         temp_output = f"{work_dir}/temp_output_with_ending.mp4"
-        concat_with_transition(output_video, ending, temp_output)
+        video.concat_with_transition(output_video, ending, temp_output)
         os.rename(temp_output, output_video)
 
-    return {"video": output_video}
+    if cover:
+        temp_output = f"{work_dir}/temp_output_with_cover.mp4"
+        video.add_cover(output_video, cover, temp_output)
+        os.rename(temp_output, output_video)
+
+    final_output_path = os.path.join(_OUTPUT_DIR, os.path.basename(output_video))
+    shutil.copy(output_video, final_output_path)
+    # shutil.rmtree(work_dir)
+
+    return {"video": final_output_path}
 
 
 if __name__ == "__main__":
+    os.makedirs(_OUTPUT_DIR, exist_ok=True)
+
     def signal_handler(sig, frame):
         executor.shutdown(wait=True)
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8686)
