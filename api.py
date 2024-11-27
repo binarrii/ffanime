@@ -52,11 +52,11 @@ def generate(
     work_dir = f"/tmp/{uuid.uuid5(uuid.NAMESPACE_DNS, str(uuid.uuid1()))}"
     os.makedirs(work_dir, exist_ok=True)
 
-    images = list(map(lambda uri: read_and_write(uri, work_dir), images))
+    images = list(executor.map(lambda uri: read_and_write(uri, work_dir), images))
     if audios:
-        audios = list(map(lambda uri: read_and_write(uri, work_dir), audios))
+        audios = list(executor.map(lambda uri: read_and_write(uri, work_dir), audios))
     if subtitles:
-        subtitles = list(map(lambda uri: read_and_write(uri, work_dir), subtitles))
+        subtitles = list(executor.map(lambda uri: read_and_write(uri, work_dir), subtitles))
     if background_sound:
         background_sound = read_and_write(background_sound, work_dir)
     if opening:

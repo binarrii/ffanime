@@ -78,8 +78,8 @@ def slide_down(frames: int, size: Tuple[int, int], fps: int) -> str:
     return f"zoompan=z='1.25':x='if(lte(on,1),(iw-iw/zoom)/2,x)':y='if(lte(on,1),(ih-ih/zoom)/2,y-1):d={frames}:s={size[0]}x{size[1]}:fps={fps}"
 
 _ANIME_FILTERS: Dict[str, Callable[[int, Tuple[int, int], int], str]] = {
-    "fade_in": fade_in,
-    "fade_out": fade_out,
+    # "fade_in": fade_in,
+    # "fade_out": fade_out,
     "zoom_in": zoom_in,
     "zoom_out": zoom_out,
     "slide_left": slide_left,
