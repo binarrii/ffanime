@@ -7,13 +7,13 @@ import uuid
 import uvicorn
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Optional
 from utils import audio, video
 from utils.storage import read_and_write
 
-_OUTPUT_DIR = "/data/ffanime_output"
 
 executor = ThreadPoolExecutor(max_workers=os.cpu_count() - 1)
 
@@ -56,8 +56,12 @@ async def generate(request: GenerateRequest):
             "ending": "file:///path/to/ending.mp4"
         }
     """
-    work_dir = f"/tmp/{uuid.uuid5(uuid.NAMESPACE_DNS, str(uuid.uuid1()))}"
+    
+    date_str, uid = datetime.now().strftime("%Y%m%d"), uuid.uuid4()
+    work_dir, output_dir = f"/tmp/{uid}", f"/data/ffanime/{date_str}"
+
     os.makedirs(work_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     images = list(executor.map(lambda uri: read_and_write(uri, work_dir), request.images))
     audios = list(executor.map(lambda uri: read_and_write(uri, work_dir), request.audios)) if request.audios else None
@@ -79,11 +83,11 @@ async def generate(request: GenerateRequest):
     if subtitles:
         videos = list(executor.map(video.add_subtitle, videos, subtitles, [f"{work_dir}/output_sub_{os.path.basename(v)}" for v in videos]))
     
-    output_video = f"{work_dir}/final_output.mp4"
+    output_video = f"{work_dir}/{uid}.mp4"
     video.concat_all(videos, output_video)
 
     if background_audio:
-        temp_output = f"{work_dir}/temp_output_with_audio.mp4"
+        temp_output = f"{work_dir}/temp_output_with_bgaudio.mp4"
         video.add_audio(output_video, background_audio, temp_output, padding_mode="repeat")
         os.rename(temp_output, output_video)
 
@@ -102,16 +106,14 @@ async def generate(request: GenerateRequest):
         video.add_cover(output_video, cover, temp_output)
         os.rename(temp_output, output_video)
 
-    final_output_path = os.path.join(_OUTPUT_DIR, os.path.basename(output_video))
+    final_output_path = os.path.join(output_dir, os.path.basename(output_video))
     shutil.copy(output_video, final_output_path)
-    # shutil.rmtree(work_dir)
+    shutil.rmtree(work_dir)
 
     return {"video": final_output_path}
 
 
 if __name__ == "__main__":
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
-
     def _signal_handler(sig, frame):
         executor.shutdown(wait=True)
         sys.exit(0)
