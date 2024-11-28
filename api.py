@@ -9,6 +9,7 @@ import uvicorn
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from utils import audio, video
@@ -29,6 +30,9 @@ class GenerateRequest(BaseModel):
 
 
 app = FastAPI()
+
+app.mount("/data", StaticFiles(directory="/data/ffanime"), name="static")
+
 
 @app.post("/generate")
 async def generate(request: GenerateRequest):
