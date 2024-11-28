@@ -7,8 +7,9 @@ import uuid
 import uvicorn
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Optional
 from utils import audio, video
 from utils.storage import read_and_write
 
@@ -16,18 +17,21 @@ _OUTPUT_DIR = "/data/ffanime_output"
 
 executor = ThreadPoolExecutor(max_workers=os.cpu_count() - 1)
 
+
+class GenerateRequest(BaseModel):
+    images: List[str]
+    audios: Optional[List[str]] = None
+    subtitles: Optional[List[str]] = None
+    background_audio: Optional[str] = None
+    opening: Optional[str] = None
+    ending: Optional[str] = None
+    cover: Optional[str] = None
+
+
 app = FastAPI()
 
 @app.post("/generate")
-def generate(
-    images: List[str],
-    audios: Optional[List[str]] = None,
-    subtitles: Optional[List[str]] = None,
-    background_sound: Optional[str] = None,
-    opening: Optional[str] = None,
-    ending: Optional[str] = None,
-    cover: Optional[str] = None,
-):
+async def generate(request: GenerateRequest):
     """
     Generate a video from images, with optional audio, subtitles, background sound, opening, and ending.
 
@@ -55,17 +59,13 @@ def generate(
     work_dir = f"/tmp/{uuid.uuid5(uuid.NAMESPACE_DNS, str(uuid.uuid1()))}"
     os.makedirs(work_dir, exist_ok=True)
 
-    images = list(executor.map(lambda uri: read_and_write(uri, work_dir), images))
-    if audios:
-        audios = list(executor.map(lambda uri: read_and_write(uri, work_dir), audios))
-    if subtitles:
-        subtitles = list(executor.map(lambda uri: read_and_write(uri, work_dir), subtitles))
-    if background_sound:
-        background_sound = read_and_write(background_sound, work_dir)
-    if opening:
-        opening = read_and_write(opening, work_dir)
-    if ending:
-        ending = read_and_write(ending, work_dir)
+    images = list(executor.map(lambda uri: read_and_write(uri, work_dir), request.images))
+    audios = list(executor.map(lambda uri: read_and_write(uri, work_dir), request.audios)) if request.audios else None
+    subtitles = list(executor.map(lambda uri: read_and_write(uri, work_dir), request.subtitles)) if request.subtitles else None
+    background_audio = read_and_write(request.background_audio, work_dir) if request.background_audio else None
+    opening = read_and_write(request.opening, work_dir) if request.opening else None
+    ending = read_and_write(request.ending, work_dir) if request.ending else None
+    cover = read_and_write(request.cover, work_dir) if request.cover else None
 
     if audios:
         durations = list(executor.map(audio.get_duration, audios))
@@ -75,16 +75,16 @@ def generate(
 
     videos = list(executor.map(video.from_image, images, durations))
     if audios:
-        videos = list(executor.map(video.add_audio, videos, audios, [f"{work_dir}/output_{os.path.basename(v)}" for v in videos]))
+        videos = list(executor.map(video.add_audio, videos, audios, [f"{work_dir}/output_aud_{os.path.basename(v)}" for v in videos]))
     if subtitles:
         videos = list(executor.map(video.add_subtitle, videos, subtitles, [f"{work_dir}/output_sub_{os.path.basename(v)}" for v in videos]))
     
     output_video = f"{work_dir}/final_output.mp4"
     video.concat_all(videos, output_video)
 
-    if background_sound:
+    if background_audio:
         temp_output = f"{work_dir}/temp_output_with_audio.mp4"
-        video.add_audio(output_video, background_sound, temp_output)
+        video.add_audio(output_video, background_audio, temp_output, padding_mode="repeat")
         os.rename(temp_output, output_video)
 
     if opening:

@@ -1,22 +1,30 @@
 import av
+import math
 import os
 import random
 import subprocess
 from typing import Callable, Dict, List, Tuple
 
 
-def from_image(image: str, duration: int, size: Tuple[int, int] = (4096, 2304), fps: int = 25) -> str:
+def from_image(image: str, duration: int, size: Tuple[int, int] = (1920, 1080), fps: int = 25) -> str:
     filter = get_anime_filter(random.choice(list(_ANIME_FILTERS.keys())), duration * fps, size, fps)
     output = f"{os.path.dirname(image)}/{os.path.basename(image)}.mp4"
     subprocess.call(["ffmpeg", "-y", "-loop", "1", "-i", f"{image}", "-vf", f"{filter}", "-c:v", "libx264", "-r", f"{fps}", "-t", f"{duration}", output], cwd=os.path.dirname(output))
     return output
 
-def add_audio(video: str, audio: str, output: str) -> str:
-    subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "-strict", "experimental", output], cwd=os.path.dirname(output))
+def add_audio(video: str, audio: str, output: str, padding_mode: str = "silence") -> str:
+    if padding_mode == "silence":
+        subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-filter_complex", "[1:a]apad", \
+            "-c:v", "copy", "-c:a", "aac", "-shortest", output], cwd=os.path.dirname(output))
+    elif padding_mode == "repeat":
+        subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=shortest,aloop=loop=-1,apad", \
+            "-c:v", "copy", "-c:a", "aac", "-shortest", output], cwd=os.path.dirname(output))
+    else:
+        raise RuntimeError(f"Invalid padding mode: {padding_mode}")
     return output
 
 def add_subtitle(video: str, subtitle: str, output: str) -> str:
-    subprocess.call(["ffmpeg", "-y", "-i", video, "-vf", f"subtitles={subtitle}", "-c:v", "copy", "-c:a", "copy", output], cwd=os.path.dirname(output))
+    subprocess.call(["ffmpeg", "-y", "-i", video, "-vf", f"subtitles={subtitle}", "-c", "copy", output], cwd=os.path.dirname(output))
     return output
 
 def add_cover(video: str, image: str, output: str) -> str:
@@ -29,28 +37,23 @@ def concat_all(video_files: List[str], output: str) -> None:
         for video in video_files:
             f.write(f"file '{os.path.basename(video)}'\n")
     subprocess.call(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "file_list.txt", "-c", "copy", output], cwd=os.path.dirname(output))
-    os.remove(file_list)
+    return output
 
 def concat_with_transition(video1: str, video2: str, output: str) -> None:
-    temp_video1 = f"{os.path.dirname(output)}/temp_video1.mp4"
-    temp_video2 = f"{os.path.dirname(output)}/temp_video2.mp4"
-    
-    fade_out_start = max(0, get_duration(video1) - 0.5)
-    
-    fade_out_filter = f"fade=t=out:st={fade_out_start}:d=0.5"
-    subprocess.call(["ffmpeg", "-y", "-i", video1, "-vf", fade_out_filter, "-c:v", "libx264", temp_video1], cwd=os.path.dirname(temp_video1))
-    
-    fade_in_filter = f"fade=t=in:st=0:d=0.5"
-    subprocess.call(["ffmpeg", "-y", "-i", video2, "-vf", fade_in_filter, "-c:v", "libx264", temp_video2], cwd=os.path.dirname(temp_video2))
-    
-    subprocess.call(["ffmpeg", "-y", "-i", temp_video1, "-i", temp_video2, "-filter_complex", "concat=n=2:v=1:a=0", "-c:v", "libx264", output], cwd=os.path.dirname(output))
-    
-    os.remove(temp_video1)
-    os.remove(temp_video2)
+    offset = max(0, get_duration(video1) - 0.5)
+    subprocess.call(["ffmpeg", "-y", "-i", video1, "-i", video2, "-filter_complex", \
+        f"[0:v]setpts=PTS-STARTPTS[v0];\
+          [1:v]setpts=PTS-STARTPTS[v1];\
+          [v0][v1]xfade=transition=fade:duration=1:offset={offset}[v];\
+          [0:a]asetpts=PTS-STARTPTS[a0];\
+          [1:a]asetpts=PTS-STARTPTS[a1];\
+          [a0][a1]acrossfade=d=1[a]",
+        "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-c:a", "aac", output], cwd=os.path.dirname(output))
+    return output
 
-def get_duration(video: str) -> float:
-    with av.open(video) as container:
-        duration = container.duration / av.time_base
+def get_duration(file_path: str) -> float:
+    with av.open(file_path) as video:
+        duration = video.duration / av.time_base
     return duration
 
 def get_anime_filter(anime: str, frames: int, size: Tuple[int, int], fps: int) -> str:
