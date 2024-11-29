@@ -60,13 +60,35 @@ async def generate(request: GenerateRequest):
         dict: A dictionary containing the path to the generated video.
 
     Example:
-        {
-            "images": ["file:///path/to/image1.jpg", "file:///path/to/image2.jpg"],
-            "audios": ["file:///path/to/audio1.mp3", "file:///path/to/audio2.mp3"],
-            "subtitles": ["file:///path/to/subtitle1.srt", "file:///path/to/subtitle2.srt"],
-            "background_sound": "file:///path/to/background.mp3",
-            "opening": "file:///path/to/opening.mp4",
-            "ending": "file:///path/to/ending.mp4"
+            {
+            "response_type": "url",
+            "images": [
+                "http://192.168.1.73/resources/ffanime/1000.jpg",
+                "http://192.168.1.73/resources/ffanime/1001.jpg",
+                "http://192.168.1.73/resources/ffanime/1002.jpg",
+                "http://192.168.1.73/resources/ffanime/1003.jpg",
+                "http://192.168.1.73/resources/ffanime/1004.jpg",
+                "http://192.168.1.73/resources/ffanime/1005.jpg",
+                "http://192.168.1.73/resources/ffanime/1006.jpg",
+                "http://192.168.1.73/resources/ffanime/1007.jpg",
+                "http://192.168.1.73/resources/ffanime/1008.jpg",
+                "http://192.168.1.73/resources/ffanime/1009.jpg"
+            ],
+            "audios": [
+                "http://192.168.1.73/resources/ffanime/1000.mp3",
+                "http://192.168.1.73/resources/ffanime/1001.mp3",
+                "http://192.168.1.73/resources/ffanime/1002.mp3",
+                "http://192.168.1.73/resources/ffanime/1003.mp3",
+                "http://192.168.1.73/resources/ffanime/1004.mp3",
+                "http://192.168.1.73/resources/ffanime/1005.mp3",
+                "http://192.168.1.73/resources/ffanime/1006.mp3",
+                "http://192.168.1.73/resources/ffanime/1007.mp3",
+                "http://192.168.1.73/resources/ffanime/1008.mp3",
+                "http://192.168.1.73/resources/ffanime/1009.mp3"
+            ],
+            "background_audio": "http://192.168.1.73/resources/ffanime/background.mp3",
+            "opening": "http://192.168.1.73/resources/ffanime/0000.mp4",
+            "cover": "http://192.168.1.73/resources/ffanime/cover.jpg"
         }
     """
     
