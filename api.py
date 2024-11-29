@@ -16,9 +16,11 @@ from typing import List, Literal, Optional
 from utils import audio, video
 from utils.storage import read_and_write
 
-dotenv.load_dotenv(dotenv_path=os.path.abspath(f"{__file__}/.env"))
-_URL_PREFIX = os.getenv("FFANIME_URL_PREFIX", "http://localhost:8686/data")
+dotenv.load_dotenv(dotenv_path=f"{os.path.dirname(__file__)}/.env")
+
 _OUTPUT_DIR = os.getenv("FFANIME_OUTPUT_DIR", "/data/ffanime")
+_HTTP_PREFIX = os.getenv("FFANIME_HTTP_PREFIX", "http://localhost:8686")
+_PATH_PREFIX = os.getenv("FFANIME_PATH_PREFIX", f"{_OUTPUT_DIR}")
 os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
 
@@ -122,9 +124,9 @@ async def generate(request: GenerateRequest):
     shutil.rmtree(work_dir)
 
     if request.response_type == "url":
-        return {"video": f"{_URL_PREFIX}/{final_output_path.replace(_OUTPUT_DIR, '')}"}
+        return {"video": f"{_HTTP_PREFIX}/{final_output_path.replace(_OUTPUT_DIR, '').lstrip('/')}"}
     else:
-        return {"video": final_output_path}
+        return {"video": final_output_path.replace(_OUTPUT_DIR, _PATH_PREFIX)}
 
 
 if __name__ == "__main__":
