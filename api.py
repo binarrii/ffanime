@@ -1,3 +1,4 @@
+import dotenv
 import math
 import os
 import shutil
@@ -11,27 +12,33 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Literal, Optional
 from utils import audio, video
 from utils.storage import read_and_write
 
+dotenv.load_dotenv(dotenv_path=os.path.abspath(f"{__file__}/.env"))
+_URL_PREFIX = os.getenv("FFANIME_URL_PREFIX", "http://localhost:8686/data")
+_OUTPUT_DIR = os.getenv("FFANIME_OUTPUT_DIR", "/data/ffanime")
+os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
-executor = ThreadPoolExecutor(max_workers=os.cpu_count() - 1)
+
+executor = ThreadPoolExecutor(max_workers=max(1, os.cpu_count() - 1))
 
 
 class GenerateRequest(BaseModel):
     images: List[str]
-    audios: Optional[List[str]] = None
-    subtitles: Optional[List[str]] = None
+    audios: Optional[List[str | None]] = None
+    subtitles: Optional[List[str | None]] = None
     background_audio: Optional[str] = None
     opening: Optional[str] = None
     ending: Optional[str] = None
     cover: Optional[str] = None
+    response_type: Literal["url", "path"] = "url"
 
 
 app = FastAPI()
 
-app.mount("/data", StaticFiles(directory="/data/ffanime"), name="static")
+app.mount("/data", StaticFiles(directory=f"{_OUTPUT_DIR}"), name="static")
 
 
 @app.post("/generate")
@@ -62,7 +69,7 @@ async def generate(request: GenerateRequest):
     """
     
     date_str, uid = datetime.now().strftime("%Y%m%d"), uuid.uuid4()
-    work_dir, output_dir = f"/tmp/{uid}", f"/data/ffanime/{date_str}"
+    work_dir, output_dir = f"/tmp/{uid}", f"{_OUTPUT_DIR}/{date_str}"
 
     os.makedirs(work_dir, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
@@ -114,7 +121,10 @@ async def generate(request: GenerateRequest):
     shutil.copy(output_video, final_output_path)
     shutil.rmtree(work_dir)
 
-    return {"video": final_output_path}
+    if request.response_type == "url":
+        return {"video": f"{_URL_PREFIX}/{final_output_path.replace(_OUTPUT_DIR, '')}"}
+    else:
+        return {"video": final_output_path}
 
 
 if __name__ == "__main__":

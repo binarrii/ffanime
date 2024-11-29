@@ -3,3 +3,4 @@ uvicorn
 pydantic
 opendal
 av
+python-dotenv

@@ -1,18 +1,22 @@
+import shutil
 import av
-import math
 import os
 import random
 import subprocess
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 
 def from_image(image: str, duration: int, size: Tuple[int, int] = (1920, 1080), fps: int = 25) -> str:
+    duration = duration if duration > 0 else 5
     filter = get_anime_filter(random.choice(list(_ANIME_FILTERS.keys())), duration * fps, size, fps)
     output = f"{os.path.dirname(image)}/{os.path.basename(image)}.mp4"
     subprocess.call(["ffmpeg", "-y", "-loop", "1", "-i", f"{image}", "-vf", f"{filter}", "-c:v", "libx264", "-r", f"{fps}", "-t", f"{duration}", output], cwd=os.path.dirname(output))
     return output
 
-def add_audio(video: str, audio: str, output: str, padding_mode: str = "silence") -> str:
+def add_audio(video: str, audio: Optional[str], output: str, padding_mode: str = "silence") -> str:
+    if audio is None:
+        shutil.copy(video, output)
+        return output
     if padding_mode == "silence":
         subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-filter_complex", "[1:a]apad", \
             "-c:v", "copy", "-c:a", "aac", "-shortest", output], cwd=os.path.dirname(output))
@@ -23,7 +27,10 @@ def add_audio(video: str, audio: str, output: str, padding_mode: str = "silence"
         raise RuntimeError(f"Invalid padding mode: {padding_mode}")
     return output
 
-def add_subtitle(video: str, subtitle: str, output: str) -> str:
+def add_subtitle(video: str, subtitle: Optional[str], output: str) -> str:
+    if subtitle is None:
+        shutil.copy(video, output)
+        return output
     subprocess.call(["ffmpeg", "-y", "-i", video, "-vf", f"subtitles={subtitle}", "-c", "copy", output], cwd=os.path.dirname(output))
     return output
 

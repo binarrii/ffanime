@@ -1,8 +1,12 @@
 import os
+from typing import Optional
 from opendal import Operator
+from urllib.parse import urlparse
 
 
-def read_and_write(uri: str, root: str) -> str:
+def read_and_write(uri: Optional[str], root: str) -> Optional[str]:
+    if uri is None:
+        return None
     content = read_file(uri)
     file_name = os.path.join(root, os.path.basename(uri))
     write_file(file_name, content)
@@ -24,8 +28,9 @@ def read_file(path: str) -> bytes:
         raise RuntimeError(f"Unsupported source: {path}")
 
 def read_file_from_url(url: str) -> bytes:
-    operator = Operator("http")
-    file_content = operator.read(url)
+    scheme, netloc, path, _, _, _ = urlparse(url)
+    operator = Operator("http", endpoint=f"{scheme}://{netloc}")
+    file_content = operator.read(path)
     return file_content
 
 def read_file_from_disk(path: str) -> bytes:
@@ -51,8 +56,6 @@ def read_file_from_s3(bucket: str, key: str) -> bytes:
 def write_file(path: str, content: bytes) -> None:
     if path.startswith("file://") or path.startswith("/"):
         write_file_to_disk(path.replace("file://", ""), content)
-    elif path.startswith("http://") or path.startswith("https://"):
-        write_file_to_url(path, content)
     elif path.startswith("ftp://"):
         write_file_to_ftp(path, content)
     elif path.startswith("sftp://"):
@@ -62,10 +65,6 @@ def write_file(path: str, content: bytes) -> None:
         write_file_to_s3(bucket, key, content)
     else:
         raise RuntimeError(f"Unsupported destination: {path}")
-
-def write_file_to_url(url: str, content: bytes) -> None:
-    operator = Operator("http")
-    operator.write(url, content)
 
 def write_file_to_disk(path: str, content: bytes) -> None:
     operator = Operator("fs", root=os.path.dirname(path))
