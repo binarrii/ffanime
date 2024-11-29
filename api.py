@@ -18,9 +18,9 @@ from utils.storage import read_and_write
 
 dotenv.load_dotenv(dotenv_path=f"{os.path.dirname(__file__)}/.env")
 
-_OUTPUT_DIR = os.getenv("FFANIME_OUTPUT_DIR", "/data/ffanime")
-_HTTP_PREFIX = os.getenv("FFANIME_HTTP_PREFIX", "http://localhost:8686")
-_PATH_PREFIX = os.getenv("FFANIME_PATH_PREFIX", f"{_OUTPUT_DIR}")
+_OUTPUT_DIR = os.getenv("FFANIME_OUTPUT_DIR", "/data/ffanime").rstrip("/")
+_HTTP_PREFIX = os.getenv("FFANIME_HTTP_PREFIX", "http://localhost:8686").rstrip("/")
+_PATH_PREFIX = os.getenv("FFANIME_PATH_PREFIX", f"{_OUTPUT_DIR}").rstrip("/")
 os.makedirs(_OUTPUT_DIR, exist_ok=True)
 
 
