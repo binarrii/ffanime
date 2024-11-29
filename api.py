@@ -60,7 +60,7 @@ async def generate(request: GenerateRequest):
         dict: A dictionary containing the path to the generated video.
 
     Example:
-            {
+        {
             "response_type": "url",
             "images": [
                 "http://192.168.1.73/resources/ffanime/1000.jpg",
