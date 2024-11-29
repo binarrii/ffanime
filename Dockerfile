@@ -12,4 +12,4 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY . .
 
-ENTRYPOINT ["python", "api.py"]
+ENTRYPOINT ["python", "main.py"]

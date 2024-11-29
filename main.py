@@ -157,4 +157,4 @@ if __name__ == "__main__":
         sys.exit(0)
 
     signal.signal(signal.SIGINT, _signal_handler)
-    uvicorn.run(app, host="0.0.0.0", port=8686)
+    uvicorn.run("main:app", host="0.0.0.0", port=8686, workers=2)
