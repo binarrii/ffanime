@@ -1,0 +1,20 @@
+version: '3.5'
+
+services:
+  ollama:
+    image: binarii/ffanime
+    container_name: ffanime
+    restart: always
+    shm_size: 1g
+    ports:
+      - "8686:8686"
+    volumes:
+      - /data/ffanime:/data/ffanime
+    # environment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #       - driver: nvidia
+    #         device_ids: ['0', '1']
+    #         capabilities: [gpu]
