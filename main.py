@@ -43,6 +43,11 @@ app = FastAPI()
 app.mount("/data", StaticFiles(directory=f"{_OUTPUT_DIR}"), name="static")
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/generate")
 async def generate(request: GenerateRequest):
     """
