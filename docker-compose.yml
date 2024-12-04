@@ -1,7 +1,7 @@
 version: '3.5'
 
 services:
-  ollama:
+  ffanime:
     image: binarii/ffanime
     container_name: ffanime
     restart: always
@@ -10,6 +10,8 @@ services:
       - "8686:8686"
     volumes:
       - /data/ffanime:/data/ffanime
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8686/health || exit 1"]
     # environment:
     # deploy:
     #   resources:
