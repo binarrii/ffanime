@@ -4,7 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /ffanime
 
-RUN apt-get update && apt-get install -y ffmpeg && apt-get clean
+RUN apt-get update && apt-get install -y ffmpeg curl && apt-get clean
 
 COPY requirements.txt .
 
