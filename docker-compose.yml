@@ -13,6 +13,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8686/health || exit 1"]
     # environment:
+    #   FFANIME_HTTP_PREFIX:
     # deploy:
     #   resources:
     #     reservations:
