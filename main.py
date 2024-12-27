@@ -151,7 +151,7 @@ async def generate(request: GenerateRequest):
     shutil.rmtree(work_dir)
 
     if request.response_type == "url":
-        return {"video": f"{_HTTP_PREFIX}/{final_output_path.replace(_OUTPUT_DIR, '').lstrip('/')}"}
+        return {"video": f"{_HTTP_PREFIX}/{final_output_path.replace(_OUTPUT_DIR, 'data').lstrip('/')}"}
     else:
         return {"video": final_output_path.replace(_OUTPUT_DIR, _PATH_PREFIX)}
 
