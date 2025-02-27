@@ -54,7 +54,7 @@ def concat_with_transition(video1: str, video2: str, output: str) -> None:
           [v0][v1]xfade=transition=fade:duration=1:offset={offset}[v];\
           [0:a]asettb=AVTB,asetpts=PTS-STARTPTS[a0];\
           [1:a]asettb=AVTB,asetpts=PTS-STARTPTS[a1];\
-          [a0][a1]acrossfade=d=0.5[a]",
+          [a0][a1]acrossfade=d=1:o=0[a]",
         "-movflags", "+faststart",
         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-c:a", "aac", output], cwd=os.path.dirname(output))
     return output
