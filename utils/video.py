@@ -46,11 +46,11 @@ def concat_all(video_files: List[str], output: str) -> None:
     subprocess.call(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "file_list.txt", "-c", "copy", output], cwd=os.path.dirname(output))
     return output
 
-def concat_with_transition(video1: str, video2: str, output: str) -> None:
+def concat_with_transition(video1: str, video2: str, output: str, fps: int = 25) -> None:
     offset = max(0, get_duration(video1) - 0.5)
     subprocess.call(["ffmpeg", "-y", "-i", video1, "-i", video2, "-filter_complex", \
-        f"[0:v]settb=AVTB,setpts=PTS-STARTPTS[v0];\
-          [1:v]settb=AVTB,setpts=PTS-STARTPTS[v1];\
+        f"[0:v]fps={fps},settb=AVTB,setpts=PTS-STARTPTS[v0];\
+          [1:v]fps={fps},settb=AVTB,setpts=PTS-STARTPTS[v1];\
           [v0][v1]xfade=transition=fade:duration=1:offset={offset}[v];\
           [0:a]asettb=AVTB,asetpts=PTS-STARTPTS[a0];\
           [1:a]asettb=AVTB,asetpts=PTS-STARTPTS[a1];\
