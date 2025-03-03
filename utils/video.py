@@ -40,6 +40,8 @@ def add_cover(video: str, image: str, output: str) -> str:
 
 def concat_all(video_files: List[str], output: str) -> None:
     file_list = f"{os.path.dirname(output)}/file_list.txt"
+    if os.path.exists(file_list):
+        os.remove(file_list)
     with open(file_list, "a+") as f:
         for video in video_files:
             f.write(f"file '{os.path.basename(video)}'\n")
@@ -47,8 +49,14 @@ def concat_all(video_files: List[str], output: str) -> None:
     return output
 
 def concat_with_transition(video1: str, video2: str, output: str, fps: int = 25) -> None:
-    offset = max(0, get_duration(video1) - 0.5)
-    subprocess.call(["ffmpeg", "-y", "-i", video1, "-i", video2, "-filter_complex", \
+    v1 = f"{os.path.dirname(output)}/{os.path.basename(video1)}.ts"
+    subprocess.call(["ffmpeg", "-y", "-i", video1, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", v1], cwd=os.path.dirname(output))
+
+    v2 = f"{os.path.dirname(output)}/{os.path.basename(video2)}.ts"
+    subprocess.call(["ffmpeg", "-y", "-i", video2, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", v2], cwd=os.path.dirname(output))
+
+    offset = max(0, get_duration(v1) - 0.5)
+    subprocess.call(["ffmpeg", "-y", "-i", v1, "-i", v2, "-filter_complex", \
         f"[0:v]fps={fps},settb=AVTB,setpts=PTS-STARTPTS[v0];\
           [1:v]fps={fps},settb=AVTB,setpts=PTS-STARTPTS[v1];\
           [v0][v1]xfade=transition=fade:duration=1:offset={offset}[v];\
