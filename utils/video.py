@@ -19,10 +19,10 @@ def add_audio(video: str, audio: Optional[str], output: str, padding_mode: str =
         return output
     if padding_mode == "silence":
         subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-filter_complex", "[1:a]apad", \
-            "-c:v", "copy", "-c:a", "aac", "-shortest", output], cwd=os.path.dirname(output))
+            "-c:v", "copy", "-c:a", "aac", "-shortest", "-strict", "experimental", output], cwd=os.path.dirname(output))
     elif padding_mode == "repeat":
         subprocess.call(["ffmpeg", "-y", "-i", video, "-i", audio, "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=shortest,aloop=loop=-1,apad", \
-            "-c:v", "copy", "-c:a", "aac", "-shortest", output], cwd=os.path.dirname(output))
+            "-c:v", "copy", "-c:a", "aac", "-shortest", "-strict", "experimental", output], cwd=os.path.dirname(output))
     else:
         raise RuntimeError(f"Invalid padding mode: {padding_mode}")
     return output
@@ -50,10 +50,10 @@ def concat_all(video_files: List[str], output: str) -> None:
 
 def concat_with_transition(video1: str, video2: str, output: str, fps: int = 25) -> None:
     v1 = f"{os.path.dirname(output)}/{os.path.basename(video1)}.ts"
-    subprocess.call(["ffmpeg", "-y", "-i", video1, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", v1], cwd=os.path.dirname(output))
+    subprocess.call(["ffmpeg", "-y", "-i", video1, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", "-strict", "experimental", v1], cwd=os.path.dirname(output))
 
     v2 = f"{os.path.dirname(output)}/{os.path.basename(video2)}.ts"
-    subprocess.call(["ffmpeg", "-y", "-i", video2, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", v2], cwd=os.path.dirname(output))
+    subprocess.call(["ffmpeg", "-y", "-i", video2, "-c:v", "libx264", "-preset", "fast", "-g", "30", "-c:a", "aac", "-strict", "experimental", v2], cwd=os.path.dirname(output))
 
     offset = max(0, get_duration(v1) - 0.5)
     subprocess.call(["ffmpeg", "-y", "-i", v1, "-i", v2, "-filter_complex", \
@@ -64,7 +64,7 @@ def concat_with_transition(video1: str, video2: str, output: str, fps: int = 25)
           [1:a]asettb=AVTB,asetpts=PTS-STARTPTS[a1];\
           [a0][a1]acrossfade=d=1:o=0[a]",
         "-movflags", "+faststart",
-        "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-c:a", "aac", output], cwd=os.path.dirname(output))
+        "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-c:a", "aac", "-strict", "experimental", output], cwd=os.path.dirname(output))
     return output
 
 def get_duration(file_path: str) -> float:
